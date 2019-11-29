@@ -4,7 +4,7 @@ from parse import parse_cfg, synoindex_modes
 
 ## Parse the config
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-config_file = os.path.dirname(os.path.dirname(os.path.abspath(__file__)) + '/config.txt'
+config_file = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/config.txt'
 cfg = parse_cfg(config_file, "client")
 
 ## Setup the client logging file
