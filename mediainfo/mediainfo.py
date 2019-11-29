@@ -1,15 +1,11 @@
-import subprocess, sys, os, collections, logging
+import subprocess, sys, os, collections
 from datetime import datetime
-
-## Set the logger and its level
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 def ffprobe_file(file_name):
 	''' Execute the ffprobe command to get all media information. '''
 
 	cmds = ['ffprobe', '-v', 'error', '-show_format', '-show_streams', file_name.encode('UTF-8')]
-	logger.debug("ffprobe -v error -show_format -show_streams %s" % file_name.encode('UTF-8'))
+	print("ffprobe -v error -show_format -show_streams %s" % file_name.encode('UTF-8'))
 	p = subprocess.Popen(cmds, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 	stderr=subprocess.PIPE)
 	output, _ = p.communicate()

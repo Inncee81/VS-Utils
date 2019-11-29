@@ -1,10 +1,6 @@
-import os, re, urllib, socket, fcntl, struct, logging
+import os, re, urllib, socket, fcntl, struct
 from ConfigParser import ConfigParser
 from collections import namedtuple
-
-## Set the logger and its level
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 cfg = namedtuple('cfg', 'port ip url server_logs client_logs mapping handbrake')
 
@@ -51,8 +47,7 @@ def parse_cfg(config_file, mode):
 	for m in mapping:
 		check_path = m[1] if mode == "server" else m[0]
 		if not os.path.exists(check_path):
-			logger.error("Error: Mapping path doesnt exist: \"" + check_path + "\"")
-			exit()
+			exit("Error: Mapping path doesnt exist: \"" + check_path + "\"")
 
 	## Get all handbrake related configs
 	handbrake = config.get(secs[3], 'handbrake_output')
