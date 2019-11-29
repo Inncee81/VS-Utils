@@ -1,8 +1,10 @@
-import os, argparse, urllib, urllib2, logging
+import os, sys, argparse, urllib, urllib2, logging
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from parse import parse_cfg, synoindex_modes
 
 ## Parse the config
-config_file = os.path.dirname(os.path.abspath(__file__)) + '/config.txt'
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+config_file = os.path.dirname(os.path.dirname(os.path.abspath(__file__)) + '/config.txt'
 cfg = parse_cfg(config_file, "client")
 
 ## Setup the client logging file
