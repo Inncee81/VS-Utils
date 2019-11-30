@@ -1,17 +1,13 @@
-import os, re, urllib, socket, struct
+import os, re
 from ConfigParser import ConfigParser
 from collections import namedtuple
 
-cfg = namedtuple('cfg', 'port ip url server_logs client_logs mapping handbrake')
+config_types = ["vs-transmission", "vs-handbrake", "vs-synoindex"]
 
-cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
-
-synoindex_modes = ['a']
-
-def get_docker_ip(mode):
+def get_docker_ip(scope):
 	''' Get the docker0 IP address with or without external packages. '''
 
-	if mode == "server":
+	if scope == "host":
 		import netifaces as ni
 		ni.ifaddresses('docker0')
 		ip = ni.ifaddresses('docker0')[ni.AF_INET][0]['addr']
@@ -23,43 +19,92 @@ def get_docker_ip(mode):
 		ip = re.search(r'([0-9]{1,3}[\.]){3}[0-9]{1,3}', output, flags=0).group()
 	return ip
 
-def parse_cfg(config_file, mode):
-	''' Parse all configuration options of the config file. '''
-
-	## Read the config file
-	config = ConfigParser()
-	config.read(config_file)
-	secs = ['Server', 'Client', 'Mapping', 'Handbrake']
-	_ = [exit('Error: Section missing') for s in secs if not config.has_section(s)]
-
-	## Get all server configurations from config file
-	ip = get_docker_ip(mode)
-	port = int(config.get(secs[0], 'server_port'))
-	url = "http://%s:%s" % (ip, port)
-
-	## Get the debug files
-	server_logs = config.get(secs[0], 'server_logs')
-	client_logs = config.get(secs[1], 'client_logs')
+def parse_cfg_transmission(config, sections, fields, scope):
 
 	## Get all mappings from the config and check whether they exist
 	mapping = config._sections['Mapping']
 	mapping = [m for m in list(mapping.items()) if m[0] != "__name__"]
 	for m in mapping:
-		check_path = m[1] if mode == "server" else m[0]
+		check_path = m[1] if scope == "host" else m[0]
 		if not os.path.exists(check_path):
-			exit("Error: Mapping path doesnt exist: \"" + check_path + "\"")
+			exit("Error: Mapping path doesnt exist: (%s)" % check_path)
 
 	## Get all handbrake related configs
-	handbrake = config.get(secs[3], 'handbrake_output')
+	handbrake = config.get(sections[1], fields[1])
 
-	return cfg(port, ip, url, server_logs, client_logs, mapping, handbrake)
+	return (mapping, handbrake)
 
-def validate_input(mapping, option, filepath):
-	""" Validate the query arguments. """
+def parse_cfg_handbrake(config, sections, fields, scope):
+
+	## Get the different episode and movie paths
+	handbrake_movies = config.get(sections[0], fields[0])
+	handbrake_series = config.get(sections[0], fields[1])
+
+	return (handbrake_movies, handbrake_series)
+
+def parse_cfg_synoindex(config, sections, fields, scope):
+
+	## Get all server configurations from config file
+	ip = get_docker_ip(scope)
+	port = int(config.get(sections[0], 'server_port'))
+	url = "http://%s:%s" % (ip, port)
+
+	## Get the debug files
+	server_logs = config.get(sections[0], fields[3])
+	client_logs = config.get(sections[1], fields[4])
+
+	return (ip, port, url, server_logs, client_logs)
+
+def parse_cfg(config_file, config_type, scope):
+	''' Parse all configuration options of the config file. '''
+
+	## Check whether the config type is supported
+	if config_type not in config_types:
+		exit("Error: Config type is not supported: %s" % (config_type))
+
+	## Read the config file
+	config = ConfigParser()
+	config.read(config_file)
+
+	## VS-Transmission
+	if (config_type == "vs-transmission"):
+		sections = ['Mapping', 'Handbrake']
+		fields = ["mapping", "handbrake"]
+
+	## VS-Handbrake
+	elif (config_type == "vs-handbrake"):
+		sections = ['Handbrake']
+		fields = ["handbrake_movies", "handbrake_series"]
+
+	## VS-SynoIndex
+	elif (config_type == "vs-synoindex"):
+		sections = ["Server", "Client"]
+		fields = ["port", "ip", "url", "server_logs", "client_logs"]
+
+	## Check whether all sections are present and initialize config Namespace
+	_ = [exit('Error: Section (%s) missing' % s) for s in sections if not config.has_section(s)]
+	cfg = namedtuple('cfg', " ".join(fields))
+	cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
+
+	if (config_type == "vs-transmission"):
+		(mapping, handbrake) = parse_cfg_transmission(config, sections, fields, scope)
+		parsed_cfg = cfg(mapping, handbrake)
+
+	if (config_type == "vs-handbrake"):
+		(handbrake_movies, handbrake_series) = parse_cfg_handbrake(config, sections, fields, scope)
+		parsed_cfg = cfg(handbrake_movies, handbrake_series)
+
+	if (config_type == "vs-synoindex"):
+		(ip, port, url, server_logs, client_logs) = parse_cfg_synoindex(config, sections, fields, scope)
+		parsed_cfg = cfg(port, ip, url, server_logs, client_logs)
+
+	return parsed_cfg
+
+def parse_dockerpath(mapping, filepath):
+	""" Convert a path within docker container to hostsystem path. """
 
 	## General validation
-	if(option not in synoindex_modes): return -1
-	if not any(m[0] in filepath for m in mapping): return -2
+	if not any(m[0] in filepath for m in mapping): return -1
 
 	## Replace the docker path to the host path
 	for m in mapping: filepath = filepath.replace(m[0], m[1])
