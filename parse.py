@@ -1,4 +1,4 @@
-import os, re, urllib, socket, fcntl, struct
+import os, re, urllib, socket, struct
 from ConfigParser import ConfigParser
 from collections import namedtuple
 
