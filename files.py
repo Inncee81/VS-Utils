@@ -47,7 +47,7 @@ def directory_create_owner(args):
         os.chown(new_dir_path, args.userid, args.groupid)
     return new_dir_path
 
-def crate_path_directories(path):
+def create_path_directories(path):
     try:
         os.makedirs(path)
     except OSError as exc:
