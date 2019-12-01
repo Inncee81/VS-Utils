@@ -4,6 +4,9 @@ from collections import namedtuple
 
 config_types = ["vs-transmission", "vs-handbrake", "vs-synoindex"]
 
+def enum(enum):
+	return enum.replace(" ", "").split(",")
+
 def get_docker_ip(scope):
 	''' Get the docker0 IP address with or without external packages. '''
 
@@ -31,14 +34,15 @@ def parse_cfg_transmission(config, sections, fields, scope):
 
 	## Get all handbrake related configs
 	handbrake = config.get(sections[1], fields[1])
+	codecs = enum(config.get(sections[1], fields[2]))
 
-	return (mapping, handbrake)
+	return (mapping, handbrake, codecs)
 
 def parse_cfg_handbrake(config, sections, fields, scope):
 
 	## Get the different episode and movie paths
-	handbrake_movies = config.get(sections[0], fields[0])
-	handbrake_series = config.get(sections[0], fields[1])
+	handbrake_movies = enum(config.get(sections[0], fields[0]))
+	handbrake_series = enum(config.get(sections[0], fields[1]))
 
 	return (handbrake_movies, handbrake_series)
 
@@ -69,7 +73,7 @@ def parse_cfg(config_file, config_type, scope):
 	## VS-Transmission
 	if (config_type == "vs-transmission"):
 		sections = ['Mapping', 'Handbrake']
-		fields = ["mapping", "handbrake"]
+		fields = ["mapping", "handbrake", "codecs"]
 
 	## VS-Handbrake
 	elif (config_type == "vs-handbrake"):
@@ -87,8 +91,8 @@ def parse_cfg(config_file, config_type, scope):
 	cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
 
 	if (config_type == "vs-transmission"):
-		(mapping, handbrake) = parse_cfg_transmission(config, sections, fields, scope)
-		parsed_cfg = cfg(mapping, handbrake)
+		(mapping, handbrake, codecs) = parse_cfg_transmission(config, sections, fields, scope)
+		parsed_cfg = cfg(mapping, handbrake, codecs)
 
 	if (config_type == "vs-handbrake"):
 		(handbrake_movies, handbrake_series) = parse_cfg_handbrake(config, sections, fields, scope)
@@ -108,4 +112,4 @@ def parse_dockerpath(mapping, filepath):
 
 	## Replace the docker path to the host path
 	for m in mapping: filepath = filepath.replace(m[0], m[1])
-	return filepath
+	return (filepath, m[1])
