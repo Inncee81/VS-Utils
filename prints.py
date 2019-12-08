@@ -1,7 +1,13 @@
+import sys
 from datetime import datetime
 
-def printmsg(message, msgtype, arguments=None):
+def printmsg(message, msgtype, arguments=None, redirect=True):
     cur_date = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
+
+    ## Redirect stdout and stderr for docker logs if necessary
+    if redirect:
+        sys.stdout = open("/proc/self/fd/1", "w")
+        sys.stderr = open("/proc/self/fd/2", "w")
 
     if arguments:
         print_str = ", ".join(["%s"] * len(arguments))
