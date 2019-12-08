@@ -1,13 +1,24 @@
 import sys
 from datetime import datetime
 
+class Logger(object):
+    def __init__(self):
+        self.terminal = sys.stdout
+        self.log = open("/proc/1/fd/1", "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        pass
+
 def printmsg(message, msgtype, arguments=None, redirect=True):
     cur_date = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
 
     ## Redirect stdout and stderr for docker logs if necessary
     if redirect:
-        sys.stdout = open("/proc/1/fd/1", "w")
-        sys.stderr = open("/proc/1/fd/1", "w")
+        sys.stdout, sys.stderr = (Logger() for _ in range(2))
 
     if arguments:
         print_str = ", ".join(["%s"] * len(arguments))
