@@ -4,7 +4,7 @@ from datetime import datetime
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout
-        self.log = open("/proc/1/fd/1", "w")
+        self.log = open("/var/log/docker.log", "w")
 
     def write(self, message):
         self.terminal.write(message)
