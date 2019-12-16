@@ -8,6 +8,10 @@ def files_find_ext(path, ext):
     ''' Find all files in the given path with the extension. '''
 
     ext_files = []
+    if os.path.isfile(path):
+        path_ext = os.path.splitext(path)[1].split(".")[-1]
+        if (path_ext in ext and "sample" not in os.path.basename(path)):
+            return [path]
     for root, _, filenames in os.walk(path):
         for filename in fnmatch.filter(filenames, "*.%s" % ext):
             if ("sample" not in filename):
