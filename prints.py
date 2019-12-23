@@ -23,7 +23,7 @@ def init_logging():
     if not os.path.isfile(log_file): open(log_file, 'a').close()
 
     ## Setup the logging format
-    logging.basicConfig(filename=log_file, filemode='a', '%(message)s')
+    logging.basicConfig(filename=log_file, filemode='a', format='%(message)s')
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
