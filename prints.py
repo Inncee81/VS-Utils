@@ -27,7 +27,7 @@ def init_logging():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-def printmsg(message, msgtype, arguments=None):
+def printmsg(message, msgtype, prefix=None, arguments=None):
 
     global logger
     cur_date = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
@@ -35,23 +35,47 @@ def printmsg(message, msgtype, arguments=None):
     if arguments:
         print_str = ", ".join(["%s"] * len(arguments))
         if msgtype == "error":
-            arguments = (cur_date,) + ("Error: ", ) + (message,) + arguments
-            print(("[%s] %s%s: (" + print_str + ")") % arguments)
-            logger.error(("[%s] %s%s: (" + print_str + ")") % arguments)
+            #if prefix:
+            arguments = (cur_date,) + (("%-15s- " % prefix),) + ("Error: ", ) + (message,) + arguments
+            print(("[%s] %s%s%s: (" + print_str + ")") % arguments)
+            logger.error(("[%s] %s%s%s: (" + print_str + ")") % arguments)
+            #else:
+            #    arguments = (cur_date,) + ("Error: ", ) + (message,) + arguments
+            #    print(("[%s] %s%s: (" + print_str + ")") % arguments)
+            #    logger.error(("[%s] %s%s: (" + print_str + ")") % arguments)
         else:
-            arguments = (cur_date,) + (message,) + arguments
-            print(("[%s] %s: (" + print_str + ")") % arguments)
-            logger.info(("[%s] %s: (" + print_str + ")") % arguments)
+            #if prefix:
+            arguments = (cur_date,) + (("%-15s- " % prefix),) + (message,) + arguments
+            print(("[%s] %s%s: (" + print_str + ")") % arguments)
+            logger.info(("[%s] %s%s: (" + print_str + ")") % arguments)
+            #else:
+            #    arguments = (cur_date,) + (message,) + arguments
+            #    print(("[%s] %s: (" + print_str + ")") % arguments)
+            #    logger.info(("[%s] %s: (" + print_str + ")") % arguments)
     else:
         if msgtype == "error":
-            print("[%s] %s%s" % (cur_date, "Error: ", message))
-            logger.error("[%s] %s%s" % (cur_date, "Error: ", message))
+            #if prefix:
+            print("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
+            logger.error("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
+            #else:
+            #    print("[%s] %s%s" % (cur_date, "Error: ", message))
+            #    logger.error("[%s] %s%s" % (cur_date, "Error: ", message))
         else:
-            print("[%s] %s" % (cur_date, message))
-            logger.info("[%s] %s" % (cur_date, message))
+            #if prefix:
+            print("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
+            logger.info("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
+            #else:
+            #    print("[%s] %s" % (cur_date, message))
+            #    logger.info("[%s] %s" % (cur_date, message))
 
-def errmsg(message, arguments=None):
-    printmsg(message, "error", arguments)
+def errmsg(message, prefix="", arguments=None):
+    if (type(prefix) == tuple):
+        arguments = prefix
+        prefix = ""
+    printmsg(message, "error", prefix, arguments)
 
-def debugmsg(message, arguments=None):
-    printmsg(message, "debug", arguments)
+def debugmsg(message, prefix="", arguments=None):
+    if (type(prefix) == tuple):
+        arguments = prefix
+        prefix = ""
+    printmsg(message, "debug", prefix, arguments)
