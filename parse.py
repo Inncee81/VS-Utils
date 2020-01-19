@@ -1,6 +1,6 @@
 import os, re
-from ConfigParser import ConfigParser
 from collections import namedtuple
+from configparser import ConfigParser
 from prints import errmsg
 
 config_types = ["vs-handbrake", "vs-synoindex"]
@@ -20,7 +20,7 @@ def get_docker_ip(scope):
         ps = subprocess.Popen(('ip', 'route', 'show'), stdout=subprocess.PIPE)
         output = subprocess.check_output(('grep', 'default'), stdin=ps.stdout)
         ps.wait()
-        ip = re.search(r'([0-9]{1,3}[\.]){3}[0-9]{1,3}', output, flags=0).group()
+        ip = re.search(r'([0-9]{1,3}[\.]){3}[0-9]{1,3}', output.decode('utf-8'), flags=0).group()
     return ip
 
 def parse_docker_mappings():
@@ -32,7 +32,7 @@ def parse_docker_mappings():
     ps.wait()
 
     ## Parse the output of the mount command
-    mounts = [l for l in output.split("\n") if len(l) > 0]
+    mounts = [l for l in output.decode().split("\n") if len(l) > 0]
     mounts = [m for m in mounts if "/etc/" not in m.split(" ")[2] and m.split(" ")[2] != "/"]
     mounts = [m for m in mounts if "@docker" not in m]
     mounts = [(m.split()[2], m.split(",")[-1][:-1]) for m in mounts]

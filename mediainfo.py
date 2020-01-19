@@ -5,14 +5,13 @@ def ffprobe_file(file_name):
     ''' Execute the ffprobe command to get all media information. '''
 
     cmds = ['ffprobe', '-v', 'error', '-show_format', '-show_streams', file_name.encode('UTF-8')]
-    print("ffprobe -v error -show_format -show_streams %s" % file_name.encode('UTF-8'))
     p = subprocess.Popen(cmds, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
     stderr=subprocess.PIPE)
     output, _ = p.communicate()
     if (output == None or output == ""):
         return None
 
-    stream_dict = ffprobe_parse(output)
+    stream_dict = ffprobe_parse(output.decode("UTF-8"))
     return ffprobe_filter(stream_dict)
 
 def ffprobe_parse(format_string):
