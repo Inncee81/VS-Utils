@@ -129,7 +129,4 @@ def parse_cfg(config_file, config_type, scope):
         (ip, port, url, server_logs, client_logs) = parse_cfg_synoindex(config, sections, fields, scope)
         parsed_cfg = cfg(port, ip, url, server_logs, client_logs)
 
-    print()
-    print(parsed_cfg)
-    exit()
     return parsed_cfg
