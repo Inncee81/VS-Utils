@@ -35,38 +35,20 @@ def printmsg(message, msgtype, prefix=None, arguments=None):
     if arguments:
         print_str = ", ".join(["%s"] * len(arguments))
         if msgtype == "error":
-            #if prefix:
             arguments = (cur_date,) + (("%-15s- " % prefix),) + ("Error: ", ) + (message,) + arguments
             print(("[%s] %s%s%s: (" + print_str + ")") % arguments)
             logger.error(("[%s] %s%s%s: (" + print_str + ")") % arguments)
-            #else:
-            #    arguments = (cur_date,) + ("Error: ", ) + (message,) + arguments
-            #    print(("[%s] %s%s: (" + print_str + ")") % arguments)
-            #    logger.error(("[%s] %s%s: (" + print_str + ")") % arguments)
         else:
-            #if prefix:
             arguments = (cur_date,) + (("%-15s- " % prefix),) + (message,) + arguments
             print(("[%s] %s%s: (" + print_str + ")") % arguments)
             logger.info(("[%s] %s%s: (" + print_str + ")") % arguments)
-            #else:
-            #    arguments = (cur_date,) + (message,) + arguments
-            #    print(("[%s] %s: (" + print_str + ")") % arguments)
-            #    logger.info(("[%s] %s: (" + print_str + ")") % arguments)
     else:
         if msgtype == "error":
-            #if prefix:
             print("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
             logger.error("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
-            #else:
-            #    print("[%s] %s%s" % (cur_date, "Error: ", message))
-            #    logger.error("[%s] %s%s" % (cur_date, "Error: ", message))
         else:
-            #if prefix:
             print("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
             logger.info("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
-            #else:
-            #    print("[%s] %s" % (cur_date, message))
-            #    logger.info("[%s] %s" % (cur_date, message))
 
 def errmsg(message, prefix="", arguments=None):
     if (type(prefix) == tuple):
