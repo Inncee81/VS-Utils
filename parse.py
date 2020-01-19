@@ -1,8 +1,9 @@
 import os, re
 from ConfigParser import ConfigParser
 from collections import namedtuple
+from prints import errmsg
 
-config_types = ["vs-transmission", "vs-handbrake", "vs-synoindex"]
+config_types = ["vs-handbrake", "vs-synoindex"]
 
 def enum(enum):
     return enum.replace(" ", "").split(",")
@@ -22,21 +23,42 @@ def get_docker_ip(scope):
         ip = re.search(r'([0-9]{1,3}[\.]){3}[0-9]{1,3}', output, flags=0).group()
     return ip
 
-def parse_cfg_transmission(config, sections, fields, scope):
+def parse_docker_mappings():
 
-    ## Get all mappings from the config and check whether they exist
-    mapping = config._sections['Mapping']
-    mapping = [m for m in list(mapping.items()) if m[0] != "__name__"]
-    for m in mapping:
-        check_path = m[1] if scope == "host" else m[0]
-        if not os.path.exists(check_path):
-            exit("Error: Mapping path doesnt exist: (%s)" % check_path)
+    ## Get all mounts of the docker container
+    import subprocess
+    ps = subprocess.Popen(('mount'), stdout=subprocess.PIPE)
+    output = subprocess.check_output(('grep', '^/dev/'), stdin=ps.stdout)
+    ps.wait()
 
-    ## Get all handbrake related configs
-    handbrake = config.get(sections[1], fields[1])
-    codecs = enum(config.get(sections[1], fields[2]))
+    ## Parse the output of the mount command
+    mounts = [l for l in output.split("\n") if len(l) > 0]
+    mounts = [m for m in mounts if "/etc/" not in m.split(" ")[2] and m.split(" ")[2] != "/"]
+    mounts = [m for m in mounts if "@docker" not in m]
+    mounts = [(m.split()[2], m.split(",")[-1][:-1]) for m in mounts]
+    mounts = [(m[0], m[1].split("=")[-1]) for m in mounts]
+    mounts = [(m[0], m[1].replace("@syno", "volume1")) for m in mounts]
 
-    return (mapping, handbrake, codecs)
+    return mounts
+
+def parse_cfg_transmission(scope, codecs):
+
+    ## Check the scope
+    if (scope != "docker"):
+        errmsg("Transmission should always run inside docker container")
+        exit()
+
+    ## Create config Namespace
+    fields=["mapping", "handbrake", "codecs"]
+    cfg = namedtuple('cfg', " ".join(fields))
+    cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
+
+    ## Get all transmission related configs
+    mapping = parse_docker_mappings()
+    handbrake = [m[0] for m in mapping if "handbrake" in m[0]]
+    handbrake = handbrake[0] if (len(handbrake) > 0) else None
+
+    return cfg(mapping, handbrake, codecs)
 
 def parse_cfg_handbrake(config, sections, fields, scope):
 
@@ -59,51 +81,6 @@ def parse_cfg_synoindex(config, sections, fields, scope):
 
     return (ip, port, url, server_logs, client_logs)
 
-def parse_cfg(config_file, config_type, scope):
-    ''' Parse all configuration options of the config file. '''
-
-    ## Check whether the config type is supported
-    if config_type not in config_types:
-        exit("Error: Config type is not supported: %s" % (config_type))
-
-    ## Read the config file
-    config = ConfigParser()
-    config.read(config_file)
-
-    ## VS-Transmission
-    if (config_type == "vs-transmission"):
-        sections = ['Mapping', 'Handbrake']
-        fields = ["mapping", "handbrake", "codecs"]
-
-    ## VS-Handbrake
-    elif (config_type == "vs-handbrake"):
-        sections = ['Handbrake']
-        fields = ["handbrake_movies", "handbrake_series"]
-
-    ## VS-SynoIndex
-    elif (config_type == "vs-synoindex"):
-        sections = ["Server", "Client"]
-        fields = ["port", "ip", "url", "server_logs", "client_logs"]
-
-    ## Check whether all sections are present and initialize config Namespace
-    _ = [exit('Error: Section (%s) missing' % s) for s in sections if not config.has_section(s)]
-    cfg = namedtuple('cfg', " ".join(fields))
-    cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
-
-    if (config_type == "vs-transmission"):
-        (mapping, handbrake, codecs) = parse_cfg_transmission(config, sections, fields, scope)
-        parsed_cfg = cfg(mapping, handbrake, codecs)
-
-    if (config_type == "vs-handbrake"):
-        (handbrake_movies, handbrake_series) = parse_cfg_handbrake(config, sections, fields, scope)
-        parsed_cfg = cfg(handbrake_movies, handbrake_series)
-
-    if (config_type == "vs-synoindex"):
-        (ip, port, url, server_logs, client_logs) = parse_cfg_synoindex(config, sections, fields, scope)
-        parsed_cfg = cfg(port, ip, url, server_logs, client_logs)
-
-    return parsed_cfg
-
 def parse_dockerpath(mapping, filepath):
     """ Convert a path within docker container to hostsystem path. """
 
@@ -117,3 +94,42 @@ def parse_dockerpath(mapping, filepath):
             if file_tmp != filepath:
                 (source_host, root_host) = (file_tmp, m[1])
     return (source_host, root_host)
+
+def parse_cfg(config_file, config_type, scope):
+    ''' Parse all configuration options of the config file. '''
+
+    ## Check whether the config type is supported
+    if config_type not in config_types:
+        exit("Error: Config type is not supported: %s" % (config_type))
+
+    ## Read the config file
+    config = ConfigParser()
+    config.read(config_file)
+
+    ## VS-Handbrake
+    if (config_type == "vs-handbrake"):
+        sections = ['Handbrake']
+        fields = ["handbrake_movies", "handbrake_series"]
+
+    ## VS-SynoIndex
+    elif (config_type == "vs-synoindex"):
+        sections = ["Server", "Client"]
+        fields = ["port", "ip", "url", "server_logs", "client_logs"]
+
+    ## Check whether all sections are present and initialize config Namespace
+    _ = [exit('Error: Section (%s) missing' % s) for s in sections if not config.has_section(s)]
+    cfg = namedtuple('cfg', " ".join(fields))
+    cfg.__new__.__defaults__ = (None,) * len(cfg._fields)
+
+    if (config_type == "vs-handbrake"):
+        (handbrake_movies, handbrake_series) = parse_cfg_handbrake(config, sections, fields, scope)
+        parsed_cfg = cfg(handbrake_movies, handbrake_series)
+
+    if (config_type == "vs-synoindex"):
+        (ip, port, url, server_logs, client_logs) = parse_cfg_synoindex(config, sections, fields, scope)
+        parsed_cfg = cfg(port, ip, url, server_logs, client_logs)
+
+    print()
+    print(parsed_cfg)
+    exit()
+    return parsed_cfg
