@@ -18,6 +18,16 @@ def files_find_ext(path, ext):
                 ext_files.append(os.path.join(root, filename))
     return ext_files
 
+def files_find_basename(path, basename):
+    ''' Find all files in the given path with the extension. '''
+
+    ext_files = []
+    for root, _, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, "%s.*" % basename):
+            if ("sample" not in filename):
+                ext_files.append(os.path.join(root, filename))
+    return ext_files
+
 def file_copy(src, dst, args):
     ''' Copy file to directory and change owner and permissions. '''
 
