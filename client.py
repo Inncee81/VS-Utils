@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 ## Add the VS-Utils submodule to the python path
 from prints import debugmsg, errmsg
-from parse import get_docker_ip
 
 def client_get_url(scope, port):
     if (scope == "docker"):

@@ -1,25 +1,25 @@
 import os, sys, errno, logging
+
+from files import create_path_directories
 from datetime import datetime
 
 logger = ""
 
-def init_logging():
+def init_logging(args):
     """ Initialize the logging """
 
-    ## Check whether the data mapping exists
     global logger
-    data_dir = os.path.join(os.sep, "data")
-    if not os.path.isdir(data_dir):
-        errmsg("data mount is not available, add it to docker mapping")
-        exit()
 
-    ## Check whether the logging directory exist otherwise create it
-    logs_dir = os.path.join(data_dir, "logs")
-    if  not os.path.isdir(logs_dir):
-        os.mkdir(logs_dir)
+    ## Check whether the data mapping exists
+    if (args.scope == "docker"):
+        log_dir = os.path.abspath(os.path.join(args.script_dir, os.pardir, "logs"))
+    else:
+        log_dir = os.path.abspath(os.path.join(args.script_dir, "logs"))
+    if not os.path.isdir(log_dir):
+        create_path_directories(log_dir)
 
     ## Setup the logging files
-    log_file = os.path.join(logs_dir, "logging.log")
+    log_file = os.path.join(log_dir, "logging.log")
     if not os.path.isfile(log_file): open(log_file, 'a').close()
 
     ## Setup the logging format
