@@ -1,9 +1,17 @@
 import os, sys, errno, logging
 
-from files import create_path_directories
 from datetime import datetime
 
 logger = ""
+
+def create_path_directories(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 def init_logging(args):
     """ Initialize the logging """
