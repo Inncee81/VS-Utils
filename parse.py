@@ -9,6 +9,8 @@ def enum(enum):
 def parse_port(port):
     ''' Parse a port number '''
 
+    if type(port) in [list,tuple]:
+        port = port[0]
     try:
         if 1 <= int(port) <= 65535: return int(port)
         else: errmsg("Invalid port"); exit()
@@ -36,6 +38,7 @@ def parse_cfg_transmission(config, sections, fields, scope):
 
     ## Parse the config in case the script is running within a docker container
     if (scope == "docker"):
+        watch_directories = None
         mapping = parse_docker_mappings()
         handbrake = [m[0] for m in mapping if "handbrake" in m[0]]
         if (len(handbrake) > 0):
@@ -46,19 +49,21 @@ def parse_cfg_transmission(config, sections, fields, scope):
     ## Parse the config in case the script is running in host system
     else:
         mapping = None
-        handbrake = enum(config.get(sections[2], fields[4]))
+        handbrake = enum(config.get("Hostsystem", "handbrake"))
         if not os.path.isdir(handbrake):
             errmsg("Handbrake directory does not exist"); exit()
-        watch_dirs = enum(config.get(sections[2], fields[6]))
-        watch_dirs = [w.strip(os.sep) for w in watch_dirs.split(",") if os.path.isdir(w)]
-        if not watch_dirs:
+        watch_directories = enum(config.get("Hostsystem", "watch_directories"))
+        watch_directories = [w.strip(os.sep) for w in watch_directories.split(",") if os.path.isdir(w)]
+        if not watch_directories:
             errmsg("None of the watch directories exist"); exit()
 
-    codecs = enum(config.get(sections[0], fields[1]))
-    exts = enum(config.get(sections[0], fields[2]))
-    server_port = parse_port(enum(config.get(sections[1], fields[3])))
-    exclude = enum(config.get(sections[2], fields[5]))
-    return (mapping, codecs, exts, exclude, server_port, handbrake, watch_dirs)
+    codecs = enum(config.get("Transmission", "codecs"))
+    extensions = enum(config.get("Transmission", "extensions"))
+    synoindex_port = parse_port(enum(config.get("SynoIndex", "synoindex_port")))
+    handbrake_exclude = enum(config.get("Hostsystem", "handbrake_exclude"))
+
+    return (mapping, codecs, extensions, synoindex_port,
+            handbrake, handbrake_exclude, watch_directories)
 
 def parse_cfg_handbrake(config, sections, fields, scope):
 
@@ -83,8 +88,8 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
         sections = ["Transmission", "SynoIndex", "Hostsystem"]
-        fields = ["mapping", "codecs", "handbrake_exclude", "exclude",
-                  "synoindex_port", "handbrake", "watch_directories"]
+        fields = ["mapping", "codecs", "extensions", "synoindex_port",
+                  "handbrake", "handbrake_exclude", "watch_directories"]
     else:
         errmsg("Config type not supported"); exit()
 
@@ -100,7 +105,7 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        (mpg, cds, exts, excs, port, hb, dirs) = parse_cfg_transmission(config, sections, fields, scope)
-        parsed_cfg = cfg(mpg, cds, exts, excs, port, hb, dirs)
+        (mpg, cds, exts, port, hb, excs, dirs) = parse_cfg_transmission(config, sections, fields, scope)
+        parsed_cfg = cfg(mpg, cds, exts, port, hb, excs, dirs)
 
     return parsed_cfg
