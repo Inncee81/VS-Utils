@@ -18,6 +18,12 @@ def init_logging(args):
 
     global logger
 
+    ## If postgres logging is enabled, there is no log file
+    if (args.scope == "postgres"):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG)
+        return
+
     ## Check whether the data mapping exists
     if (args.scope == "docker"):
         log_dir = os.path.abspath(os.path.join(args.script_dir, os.pardir, "logs"))
