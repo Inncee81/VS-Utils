@@ -19,14 +19,18 @@ def client_get_url(scope, port):
     return url
 
 ### Synoindex-Client
-def client(scope, port, source_host, output_host, original):
+def client(scope, port, source_host, output_host=None, original=0):
 
     ## Get the URL to the Syno-Index server
     url = client_get_url(scope, port)
 
+    if not output_host:
+        query_vars = {'source_host': source_host}
+    else:
+        query_vars = {"source_host": source_host, "output_host": output_host}
+
     ## Call the url and get the answer of the server
-    query_vars = {"source_host": source_host, "output_host": output_host,
-                  "original": original}
+    query_vars["original"] = original
 
     url = url + urlencode(query_vars)
     debugmsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
