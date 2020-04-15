@@ -1,21 +1,36 @@
 import os, re
 from collections import namedtuple
 from configparser import ConfigParser
-from prints import errmsg
+from prints import errmsg, debugmsg
 
 def enum(enum):
     return enum.replace(" ", "").split(",")
 
-def parse_port(port):
-    ''' Parse a port number '''
+def parse_dig(dig, imin, imax):
+    ''' Parse a digit '''
 
-    if type(port) in [list,tuple]:
-        port = port[0]
+    dig = enum(dig)[0]
     try:
-        if 1 <= int(port) <= 65535: return int(port)
-        else: errmsg("Invalid port"); exit()
+        if imin <= int(dig) <= imax: return int(dig)
+        else: errmsg("Invalid digit in config"); exit()
     except ValueError:
-        errmsg("Invalid port"); exit()
+        errmsg("Invalid digit in config"); exit()
+
+def parse_strlist(strlist, paths=False):
+    try:
+        strlist = list(filter(None, strlist.split(',')))
+    except ValueError:
+        errmsg("Invalid string list in config"); exit()
+    if not strlist:
+        errmsg("Invalid string list in config"); exit()
+    if paths:
+        paths = [p.strip(os.sep) for p in strlist if os.path.isdir(p)]
+        if not paths:
+            errmsg("Config contains list of non-existent file paths")
+        if set(paths) != set(strlist):
+            debugmsg("Config contains path which does not exist")
+        return paths
+    return strlist
 
 def parse_docker_mappings():
     ''' Get all mounts of a docker container '''
@@ -34,11 +49,12 @@ def parse_docker_mappings():
     mounts = [(m[0], m[1].replace("@syno", "volume1")) for m in mounts]
     return mounts
 
-def parse_cfg_transmission(config, sections, fields, scope):
+def parse_cfg_transmission(cfg, scope):
+
+    mapping, host_watch_dir = (None for _ in range(2))
 
     ## Parse the config in case the script is running within a docker container
     if (scope == "docker"):
-        watch_directories = None
         mapping = parse_docker_mappings()
         handbrake = [m[0] for m in mapping if "handbrake" in m[0]]
         if (len(handbrake) > 0):
@@ -46,32 +62,27 @@ def parse_cfg_transmission(config, sections, fields, scope):
         else:
             errmsg("Define the handbrake mount in the container settings"); exit()
 
-    ## Parse the config in case the script is running in host system
+    ## [Hostsystem] Parse the config in case the script is running in host system
     else:
-        mapping = None
-        handbrake = enum(config.get("Hostsystem", "handbrake"))
-        if not os.path.isdir(handbrake):
-            errmsg("Handbrake directory does not exist"); exit()
-        watch_directories = enum(config.get("Hostsystem", "watch_directories"))
-        watch_directories = [w.strip(os.sep) for w in watch_directories.split(",") if os.path.isdir(w)]
-        if not watch_directories:
-            errmsg("None of the watch directories exist"); exit()
+        handbrake = parse_strlist(cfg.get("Host", "host_handbrake"), True)[0]
+        host_watch_dir = parse_strlist(cfg.get("Host", "host_watch_dir"), True)
 
-    codecs = enum(config.get("Transmission", "codecs"))
-    extensions = enum(config.get("Transmission", "extensions"))
-    synoindex_port = parse_port(enum(config.get("SynoIndex", "synoindex_port")))
-    handbrake_exclude = enum(config.get("Hostsystem", "handbrake_exclude"))
+    codecs = enum(cfg.get("Transmission", "codecs"))
+    extensions = enum(cfg.get("Transmission", "extensions"))
+    port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
+    handbrake_exclude = parse_strlist(cfg.get("Handbrake", "handbrake_exclude"))
 
-    return (mapping, codecs, extensions, synoindex_port,
-            handbrake, handbrake_exclude, watch_directories)
+    return (mapping, codecs, extensions, port, handbrake_exclude,
+            handbrake, host_watch_dir)
 
-def parse_cfg_handbrake(config, sections, fields, scope):
+def parse_cfg_handbrake(cfg, scope):
 
     ## Get the different episode and movie paths
-    handbrake_movies = enum(config.get(sections[0], fields[0]))
-    handbrake_series = enum(config.get(sections[0], fields[1]))
-    server_port = enum(config.get(sections[1], fields[2]))
-    return (handbrake_movies, handbrake_series, server_port)
+    handbrake_movies = enum(cfg.get("Handbrake", "handbrake_movies"))
+    handbrake_series = enum(cfg.get("Handbrake", "handbrake_series"))
+    handbrake_original = parse_dig(cfg.get("Handbrake", "handbrake_original"), 0, 3)
+    server_port = enum(cfg.get("SynoIndex", "synoindex_port"))
+    return (handbrake_movies, handbrake_series, handbrake_original, server_port)
 
 def parse_cfg(config_file, config_type, scope):
     ''' Parse all configuration options of the config file. '''
@@ -83,13 +94,13 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
         sections = ["Handbrake", "SynoIndex"]
-        fields = ["handbrake_movies", "handbrake_series", "synoindex_port"]
+        fields = ["movies", "series", "original", "synoindex_port"]
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        sections = ["Transmission", "SynoIndex", "Hostsystem"]
-        fields = ["mapping", "codecs", "extensions", "synoindex_port",
-                  "handbrake", "handbrake_exclude", "watch_directories"]
+        sections = ["Transmission", "SynoIndex", "Handbrake", "Host"]
+        fields =   ["mapping", "codecs", "extensions", "port", "exclude",
+                    "handbrake", "watch_dir"]
     else:
         errmsg("Config type not supported"); exit()
 
@@ -100,12 +111,12 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        (movies, series, port) = parse_cfg_handbrake(config, sections, fields, scope)
-        parsed_cfg = cfg(movies, series, port)
+        (movies, series, original, port) = parse_cfg_handbrake(config, scope)
+        parsed_cfg = cfg(movies, series, original, port)
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        (mpg, cds, exts, port, hb, excs, dirs) = parse_cfg_transmission(config, sections, fields, scope)
-        parsed_cfg = cfg(mpg, cds, exts, port, hb, excs, dirs)
+        (mpg, cds, exts, port, excls, hb, dirs) = parse_cfg_transmission(config, scope)
+        parsed_cfg = cfg(mpg, cds, exts, port, excls, hb, dirs)
 
     return parsed_cfg
