@@ -1,11 +1,6 @@
-#################################################
-##           Scope: Docker-Container           ##
-#################################################
 import os, re, urllib
 from urllib.request import urlopen
 from urllib.parse import urlencode
-
-## Add the VS-Utils submodule to the python path
 from prints import debugmsg, errmsg
 
 def client_get_url(scope, port):
@@ -24,17 +19,16 @@ def client_get_url(scope, port):
     return url
 
 ### Synoindex-Client
-def client(source_host, port, output_host=None, scope="docker"):
+def client(source_host, port, output_host="", original=0, scope="docker"):
 
     ## Get the URL to the Syno-Index server
     url = client_get_url(scope, port)
 
     ## Call the url and get the answer of the server
-    if not output_host:
-        query_vars = {'source_host': source_host}
-    else:
-        query_vars = {'source_host': source_host, 'output_host': output_host}
+    query_vars = {"source_host": source_host, "output_host": output_host,
+                  "original": original}
+
     url = url + urlencode(query_vars)
-    debugmsg("Sent to SynoIndex-Server", "SynoClient")
+    debugmsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
     contents = urlopen(url).read()
     debugmsg("SynoIndex-Server answered with", "SynoClient", (contents,))
