@@ -19,7 +19,7 @@ def client_get_url(scope, port):
     return url
 
 ### Synoindex-Client
-def client(source_host, port, output_host="", original="0", scope="docker"):
+def client(scope, port, source_host, output_host, original):
 
     ## Get the URL to the Syno-Index server
     url = client_get_url(scope, port)
