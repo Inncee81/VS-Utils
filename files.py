@@ -79,7 +79,7 @@ def unrar_files(abs_path):
 
     rar_files = files_find_ext(abs_path, "rar")
     if rar_files:
-        debugmsg("Found some rar files, try to unrar them")
+        debugmsg("Found some rar files, try to unrar them", "Postprocessing")
         for rar_file in rar_files:
             process = Popen(["unrar", "x", "-o+", rar_file, abs_path], stdout=PIPE, stderr=PIPE)
             stderr = process.communicate()[1]

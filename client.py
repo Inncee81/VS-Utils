@@ -34,5 +34,8 @@ def client(scope, port, source_host, output_host=None, original=0):
 
     url = url + urlencode(query_vars)
     debugmsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
-    contents = urlopen(url).read()
-    debugmsg("SynoIndex-Server answered with", "SynoClient", (contents,))
+    try:
+        contents = urlopen(url).read()
+        debugmsg("SynoIndex-Server answered with", "SynoClient", (contents.decode("UTF-8"),))
+    except urllib.error.URLError:
+        errmsg("Server is not started yet, start the Triggered Task"); exit()

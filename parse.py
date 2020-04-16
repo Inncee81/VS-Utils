@@ -81,8 +81,8 @@ def parse_cfg_handbrake(cfg, scope):
     handbrake_movies = enum(cfg.get("Handbrake", "handbrake_movies"))
     handbrake_series = enum(cfg.get("Handbrake", "handbrake_series"))
     handbrake_original = parse_dig(cfg.get("Handbrake", "handbrake_original"), 0, 3)
-    server_port = enum(cfg.get("SynoIndex", "synoindex_port"))
-    return (handbrake_movies, handbrake_series, handbrake_original, server_port)
+    port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
+    return (handbrake_movies, handbrake_series, handbrake_original, port)
 
 def parse_cfg(config_file, config_type, scope):
     ''' Parse all configuration options of the config file. '''
@@ -94,7 +94,7 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
         sections = ["Handbrake", "SynoIndex"]
-        fields = ["movies", "series", "original", "synoindex_port"]
+        fields = ["movies", "series", "original", "port"]
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
