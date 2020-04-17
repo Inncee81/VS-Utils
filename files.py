@@ -1,22 +1,26 @@
-import os, sys, fnmatch, subprocess, errno, stat
-from subprocess import Popen, PIPE, STDOUT, call
-from shutil import copy, copyfile
+import os, fnmatch, subprocess, errno, stat, glob
+from subprocess import Popen, PIPE
+from shutil import copy
 
 from prints import errmsg, debugmsg
 
 def files_find_ext(path, ext):
-    ''' Find all files in the given path with the extension. '''
+    ''' Find all files in a given path matching one or more extensions. '''
 
-    ext_files = []
-    if os.path.isfile(path):
-        path_ext = os.path.splitext(path)[1].split(".")[-1]
-        if (path_ext in ext and "sample" not in os.path.basename(path)):
+    exts = ext if isinstance(ext, str) else tuple(ext)
+
+    ## if the passed path is a single file
+    if os.path.isfile(path) and path.endswith(exts):
+        if ("sample" not in os.path.basename(path)):
             return [path]
-    for root, _, filenames in os.walk(path):
-        for filename in fnmatch.filter(filenames, "*.%s" % ext):
+
+    ## If the passed path is a directory then search all files recursively
+    ext_files = []
+    for filename in glob.iglob(os.path.join(path, '') + '**/*', recursive=True):
+        if os.path.isfile(filename) and filename.endswith(exts):
             if ("sample" not in filename):
-                ext_files.append(os.path.join(root, filename))
-    return ext_files
+                ext_files.append(filename)
+    return sorted(ext_files)
 
 def files_find_basename(path, basename):
     ''' Find all files in the given path with the extension. '''
@@ -71,7 +75,7 @@ def create_path_directories(path):
             raise
 
 def unrar_files(abs_path):
-    """ Unzip rar files (synochronous)
+    """ Unzip rar files
 
     Arguments:
         abs_path {string} -- Path to the directory containg rar files
@@ -79,7 +83,7 @@ def unrar_files(abs_path):
 
     rar_files = files_find_ext(abs_path, "rar")
     if rar_files:
-        debugmsg("Found some rar files, try to unrar them", "Postprocessing")
+        debugmsg("Found RAR archives in source directory, extract them", "Postprocessing")
         for rar_file in rar_files:
             process = Popen(["unrar", "x", "-o+", rar_file, abs_path], stdout=PIPE, stderr=PIPE)
             stderr = process.communicate()[1]
