@@ -1,10 +1,17 @@
 import os, re
 from collections import namedtuple
 from configparser import ConfigParser
-from prints import errmsg, debugmsg
+from prints import errmsg, debugmsg, infomsg
 
 def enum(enum):
     return enum.replace(" ", "").split(",")
+
+def parse_loglevel(log_level):
+    allowed = ["DEBUG", "INFO", "ERROR"]
+    lvl = enum(log_level)
+    if (not lvl or len(lvl) > 1 or lvl[0] not in allowed):
+        errmsg("Invalid log level in config"); exit()
+    else: return lvl[0]
 
 def parse_dig(dig, imin, imax):
     ''' Parse a digit '''
@@ -26,9 +33,9 @@ def parse_strlist(strlist, paths=False):
     if paths:
         paths = [p.strip(os.sep) for p in strlist if os.path.isdir(p)]
         if not paths:
-            errmsg("Config contains list of non-existent file paths")
+            infomsg("Config contains list of non-existent file paths")
         if set(paths) != set(strlist):
-            debugmsg("Config contains path which does not exist")
+            infomsg("Config contains path which does not exist")
         return paths
     return strlist
 
@@ -71,9 +78,10 @@ def parse_cfg_transmission(cfg, scope):
     extensions = enum(cfg.get("Transmission", "extensions"))
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     handbrake_exclude = parse_strlist(cfg.get("Handbrake", "handbrake_exclude"))
+    log_level = parse_loglevel(cfg.get("Logging", "log_level"))
 
     return (mapping, codecs, extensions, port, handbrake_exclude,
-            handbrake, host_watch_dir)
+            handbrake, host_watch_dir, log_level)
 
 def parse_cfg_handbrake(cfg, scope):
 
@@ -82,7 +90,8 @@ def parse_cfg_handbrake(cfg, scope):
     handbrake_series = enum(cfg.get("Handbrake", "handbrake_series"))
     handbrake_original = parse_dig(cfg.get("Handbrake", "handbrake_original"), 0, 3)
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
-    return (handbrake_movies, handbrake_series, handbrake_original, port)
+    log_level = parse_loglevel(cfg.get("Logging", "log_level"))
+    return (handbrake_movies, handbrake_series, handbrake_original, port, log_level)
 
 def parse_cfg(config_file, config_type, scope):
     ''' Parse all configuration options of the config file. '''
@@ -93,14 +102,14 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        sections = ["Handbrake", "SynoIndex"]
-        fields = ["movies", "series", "original", "port"]
+        sections = ["Handbrake", "SynoIndex", "Logging"]
+        fields = ["movies", "series", "original", "port", "log_level"]
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        sections = ["Transmission", "SynoIndex", "Handbrake", "Host"]
+        sections = ["Transmission", "SynoIndex", "Handbrake", "Host", "Logging"]
         fields =   ["mapping", "codecs", "extensions", "port", "exclude",
-                    "handbrake", "watch_dir"]
+                    "handbrake", "watch_dir", "log_level"]
     else:
         errmsg("Config type not supported"); exit()
 
@@ -111,12 +120,12 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        (movies, series, original, port) = parse_cfg_handbrake(config, scope)
-        parsed_cfg = cfg(movies, series, original, port)
+        (movies, series, original, port, level) = parse_cfg_handbrake(config, scope)
+        parsed_cfg = cfg(movies, series, original, port, level)
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        (mpg, cds, exts, port, excls, hb, dirs) = parse_cfg_transmission(config, scope)
-        parsed_cfg = cfg(mpg, cds, exts, port, excls, hb, dirs)
+        (mpg, cds, exts, port, excls, hb, dirs, lvl) = parse_cfg_transmission(config, scope)
+        parsed_cfg = cfg(mpg, cds, exts, port, excls, hb, dirs, lvl)
 
     return parsed_cfg

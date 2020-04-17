@@ -1,7 +1,7 @@
 import os, re, urllib
 from urllib.request import urlopen
 from urllib.parse import urlencode
-from prints import debugmsg, errmsg
+from prints import errmsg, debugmsg, infomsg
 
 def client_get_url(scope, port):
     if (scope == "docker"):
@@ -33,7 +33,7 @@ def client(scope, port, source_host, output_host=None, original=0):
     query_vars["original"] = original
 
     url = url + urlencode(query_vars)
-    debugmsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
+    infomsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
     try:
         contents = urlopen(url).read()
         debugmsg("SynoIndex-Server answered with", "SynoClient", (contents.decode("UTF-8"),))

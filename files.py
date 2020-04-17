@@ -2,7 +2,7 @@ import os, fnmatch, subprocess, errno, stat, glob
 from subprocess import Popen, PIPE
 from shutil import copy
 
-from prints import errmsg, debugmsg
+from prints import errmsg, debugmsg, infomsg
 
 def files_find_ext(path, ext):
     ''' Find all files in a given path matching one or more extensions. '''
@@ -83,7 +83,7 @@ def unrar_files(abs_path):
 
     rar_files = files_find_ext(abs_path, "rar")
     if rar_files:
-        debugmsg("Found RAR archives in source directory, extract them", "Postprocessing")
+        infomsg("Found RAR archives in source directory, extract them", "Postprocessing")
         for rar_file in rar_files:
             process = Popen(["unrar", "x", "-o+", rar_file, abs_path], stdout=PIPE, stderr=PIPE)
             stderr = process.communicate()[1]
