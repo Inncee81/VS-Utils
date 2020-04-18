@@ -19,21 +19,23 @@ def client_get_url(scope, port):
     return url
 
 ### Synoindex-Client
-def client(scope, port, source_host, output_host=None, original=0):
+def client(scope, port, source_host, output_host=None, original_host=None, original_mode=0):
 
-    ## Get the URL to the Syno-Index server
+    ## Get the URL to the Syno-Index server and add the arguments
     url = client_get_url(scope, port)
-
     if not output_host:
         query_vars = {'source_host': source_host}
     else:
-        query_vars = {"source_host": source_host, "output_host": output_host}
+        query_vars = {"source_host": source_host, "output_host": output_host, "original_host": original_host}
+    query_vars["original_mode"] = original_mode
 
     ## Call the url and get the answer of the server
-    query_vars["original"] = original
-
     url = url + urlencode(query_vars)
-    infomsg("Send arguments to SynoIndex-Server", "SynoClient", (source_host, port, output_host, original))
+    infomsg("Send query to SynoIndex-Server", "SynoClient")
+    infomsg("  Source: {}", "SynoClient", (source_host,))
+    infomsg("  Handbrake Output: {}", "SynoClient", (output_host,))
+    infomsg("  Original: {}", "SynoClient", (original_host,))
+    infomsg("  Original mode: {}", "SynoClient", (original_mode,))
     try:
         contents = urlopen(url).read()
         debugmsg("SynoIndex-Server answered with", "SynoClient", (contents.decode("UTF-8"),))
