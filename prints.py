@@ -16,13 +16,12 @@ def create_path_directories(path):
 def init_logging(args, cfg):
     """ Initialize the logging """
 
-    global logger
-    level = logging.getLevelName(cfg.log_level)
+    global logger, logger_file
 
     ## If postgres logging is enabled, there is no log file
     if (args.scope == "postgres"):
+        logging.basicConfig(format='%(message)s', level=cfg.log_level)
         logger = logging.getLogger(__name__)
-        logger.setLevel(level)
         return
 
     ## Check whether the data mapping exists
@@ -38,15 +37,14 @@ def init_logging(args, cfg):
     if not os.path.isfile(log_file): open(log_file, 'a').close()
 
     ## Setup the logging format
-    logging.basicConfig(filename=log_file, filemode='a', format='%(message)s')
+    logging.basicConfig(filename=log_file, filemode='a', format='%(message)s', level=cfg.log_level)
     logger_file = log_file
     logger = logging.getLogger(__name__)
-    logger.setLevel(level)
     return
 
 def printmsg(message, msgtype, prefix=None, arguments=None):
 
-    global logger
+    global logger, logger_file
     cur_date = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
 
     if arguments:
@@ -82,8 +80,8 @@ def printmsg(message, msgtype, prefix=None, arguments=None):
 
 def bootstrap_logging():
     global logger
+    logging.basicConfig(format='%(message)s', level=logging.DEBUG)
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
 
 def errmsg(message, prefix="", arguments=None):
     if isinstance(logger, str):

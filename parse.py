@@ -7,11 +7,13 @@ def enum(enum):
     return enum.replace(" ", "").split(",")
 
 def parse_loglevel(log_level):
-    allowed = ["DEBUG", "INFO", "ERROR"]
-    lvl = enum(log_level)
-    if (not lvl or len(lvl) > 1 or lvl[0] not in allowed):
+    allowed = [10, 20, 40]
+    log_level = enum(log_level)[0]
+    try:
+        if int(log_level) in allowed: return int(log_level)
+        else: errmsg("Invalid log level in config"); exit()
+    except ValueError:
         errmsg("Invalid log level in config"); exit()
-    else: return lvl[0]
 
 def parse_dig(dig, imin, imax):
     ''' Parse a digit '''
