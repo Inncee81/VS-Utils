@@ -74,18 +74,29 @@ def create_path_directories(path):
         else:
             raise
 
-def unrar_files(abs_path):
+def unrar_files(abs_path, ext=None):
     """ Unzip rar files
 
     Arguments:
         abs_path {string} -- Path to the directory containg rar files
     """
 
-    rar_files = files_find_ext(abs_path, "rar")
-    if rar_files:
-        infomsg("Found RAR archives in source directory, extract them", "Postprocessing")
-        for rar_file in rar_files:
+    stderr = ""
+    exts = ext if isinstance(ext, str) else tuple(ext)
+    for rar_file in files_find_ext(abs_path, "rar"):
+        files = []
+        if (exts):
+            process = Popen(["unrar", "lb", rar_file], stdout=PIPE, stderr=PIPE)
+            stdout, stderr = process.communicate()
+            if len(stderr) > 1: break
+            files = stdout.decode("UTF-8").split("\n")
+            files = [f for f in files if f.endswith(exts)]
+        if (files or exts == None):
+            infomsg("Found RAR archive in source directory, extract it", "Postprocessing", (rar_file,))
             process = Popen(["unrar", "x", "-o+", rar_file, abs_path], stdout=PIPE, stderr=PIPE)
             stderr = process.communicate()[1]
-            if len(stderr) > 1:
-                print(stderr)
+            if len(stderr) > 1: break
+
+    if len(stderr) > 1:
+        errmsg("Unrar archive failed with the following error message")
+        print(stderr); exit()
