@@ -29,7 +29,7 @@ def init_logging(args=None, cfg=None):
     logFormatter = ""
 
     ## Setup the logging file
-    if (args != None and cfg != None):
+    if (args != None and cfg != None and args.scope != "postgres"):
         if not os.path.isdir(cfg.log_dir):
             create_path_directories(cfg.log_dir)
         log_file = os.path.join(cfg.log_dir, "{}.log".format(log_name))
