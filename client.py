@@ -32,12 +32,13 @@ def client(scope, port, source_host, output_host=None, original_host=None, origi
     ## Call the url and get the answer of the server
     url = url + urlencode(query_vars)
     infomsg("Send query to SynoIndex-Server", "SynoClient")
-    infomsg("  Source:", "SynoClient", (source_host,))
-    infomsg("  Handbrake Output:", "SynoClient", (output_host,))
-    infomsg("  Original:", "SynoClient", (original_host,))
-    infomsg("  Original mode:", "SynoClient", (original_mode,))
+    debugmsg("  Url", "SynoClient", (url,))
+    infomsg("  Source", "SynoClient", (source_host,))
+    infomsg("  Handbrake Output", "SynoClient", (output_host,))
+    infomsg("  Original", "SynoClient", (original_host,))
+    infomsg("  Original mode", "SynoClient", (original_mode,))
     try:
         contents = urlopen(url).read()
         debugmsg("SynoIndex-Server answered with", "SynoClient", (contents.decode("UTF-8"),))
     except urllib.error.URLError:
-        errmsg("Server is not started yet, start the Triggered Task"); exit()
+        errmsg("Server is not started yet, start the Triggered Task with the right mode"); exit()
