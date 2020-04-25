@@ -1,8 +1,13 @@
-import os, sys, errno, logging, argparse
-
+import os, errno, logging
 from datetime import datetime
 
-logger, logger_file = ("" for _ in range(2))
+## Get the log name from the project file
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+par_dir = os.path.join(cur_dir, os.pardir)
+project_file = os.path.join(par_dir, ".project")
+with open(project_file, 'r') as f: log_name = f.read()
+
+rootLogger = ""
 
 def create_path_directories(path):
     try:
@@ -13,95 +18,85 @@ def create_path_directories(path):
         else:
             raise
 
-def init_logging(args, cfg):
+def handler_exists(htype):
+    handler = [h for h in rootLogger.handlers if type(h) == htype]
+    return bool(handler)
+
+def init_logging(args=None, cfg=None):
     """ Initialize the logging """
 
-    global logger, logger_file
+    global rootLogger
+    logFormatter = ""
 
-    ## If postgres logging is enabled, there is no log file
-    if (args.scope == "postgres"):
-        logging.basicConfig(format='%(message)s', level=cfg.log_level)
-        logger = logging.getLogger(__name__)
-        return
+    ## Setup the logging file
+    if (args != None and cfg != None):
+        if not os.path.isdir(cfg.log_dir):
+            create_path_directories(cfg.log_dir)
+        log_file = os.path.join(cfg.log_dir, "{}.log".format(log_name))
+        if not os.path.isfile(log_file): open(log_file, 'a').close()
 
-    ## Check whether the data mapping exists
-    if (args.scope == "docker"):
-        log_dir = os.path.abspath(os.path.join(args.script_dir, os.pardir, "logs"))
-    else:
-        log_dir = os.path.abspath(os.path.join(args.script_dir, "logs"))
-    if not os.path.isdir(log_dir):
-        create_path_directories(log_dir)
+    ## Setup the root logger
+    log_lvl = logging.DEBUG if (not args and not cfg) else cfg.log_level
+    if (rootLogger == ""):
+        logFormatter = logging.Formatter("[%(asctime)s] %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
+        rootLogger = logging.getLogger()
+        rootLogger.setLevel(log_lvl)
 
-    ## Setup the logging files
-    log_file = os.path.join(log_dir, "logging.log")
-    if not os.path.isfile(log_file): open(log_file, 'a').close()
+    ## Add a file handler only in non-postgres mode
+    if (args != None and cfg != None and args.scope != "postgres"):
+        if not handler_exists(logging.FileHandler):
+            fileHandler = logging.FileHandler(log_file, mode='a')
+            fileHandler.setFormatter(logFormatter)
+            fileHandler.setLevel(log_lvl)
+            rootLogger.addHandler(fileHandler)
 
-    ## Setup the logging format
-    logging.basicConfig(filename=log_file, filemode='a', format='%(message)s', level=cfg.log_level)
-    logger_file = log_file
-    logger = logging.getLogger(__name__)
-    return
+    ## Always add a console handler
+    if not handler_exists(logging.StreamHandler):
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setFormatter(logFormatter)
+        consoleHandler.setLevel(log_lvl)
+        rootLogger.addHandler(consoleHandler)
 
 def printmsg(message, msgtype, prefix=None, arguments=None):
 
-    global logger, logger_file
-    cur_date = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
+    global rootLogger
 
     if arguments:
         print_str = ", ".join(["%s"] * len(arguments))
         if msgtype == "error":
-            arguments = (cur_date,) + (("%-15s- " % prefix),) + ("Error: ", ) + (message,) + arguments
-            print(("[%s] %s%s%s: (" + print_str + ")") % arguments)
-            if logger_file != "":
-                logger.error(("[%s] %s%s%s: (" + print_str + ")") % arguments)
+            arguments = (("%-15s- " % prefix),) + ("Error: ", ) + (message,) + arguments
+            rootLogger.error(("%s%s%s: (" + print_str + ")") % arguments)
         elif(msgtype == "debug"):
-            arguments = (cur_date,) + (("%-15s- " % prefix),) + (message,) + arguments
-            print(("[%s] %s%s: (" + print_str + ")") % arguments)
-            if logger_file != "":
-                logger.debug(("[%s] %s%s: (" + print_str + ")") % arguments)
+            arguments = (("%-15s- " % prefix),) + (message,) + arguments
+            rootLogger.debug(("%s%s: (" + print_str + ")") % arguments)
         else:
-            arguments = (cur_date,) + (("%-15s- " % prefix),) + (message,) + arguments
-            print(("[%s] %s%s: (" + print_str + ")") % arguments)
-            if logger_file != "":
-                logger.info(("[%s] %s%s: (" + print_str + ")") % arguments)
+            arguments = (("%-15s- " % prefix),) + (message,) + arguments
+            rootLogger.info(("%s%s: (" + print_str + ")") % arguments)
     else:
         if msgtype == "error":
-            print("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
-            if logger_file != "":
-                logger.error("[%s] %s%s%s" % (cur_date, ("%-15s- " % prefix), "Error: ", message))
+            rootLogger.error("%s%s%s" % (("%-15s- " % prefix), "Error: ", message))
         elif(msgtype == "debug"):
-            print("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
-            if logger_file != "":
-                logger.debug("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
+            rootLogger.debug("%s%s" % ("%-15s- " % prefix, message))
         else:
-            print("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
-            if logger_file != "":
-                logger.info("[%s] %s%s" % (cur_date, "%-15s- " % prefix, message))
+            rootLogger.info("%s%s" % ("%-15s- " % prefix, message))
 
-def bootstrap_logging():
-    global logger
-    logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
 
 def errmsg(message, prefix="", arguments=None):
-    if isinstance(logger, str):
-        bootstrap_logging()
+    if rootLogger == "": init_logging()
     if (type(prefix) == tuple):
         arguments = prefix
         prefix = ""
     printmsg(message, "error", prefix, arguments)
 
 def infomsg(message, prefix="", arguments=None):
-    if isinstance(logger, str):
-        bootstrap_logging()
+    if rootLogger == "": init_logging()
     if (type(prefix) == tuple):
         arguments = prefix
         prefix = ""
     printmsg(message, "info", prefix, arguments)
 
 def debugmsg(message, prefix="", arguments=None):
-    if isinstance(logger, str):
-        bootstrap_logging()
+    if rootLogger == "": init_logging()
     if (type(prefix) == tuple):
         arguments = prefix
         prefix = ""
