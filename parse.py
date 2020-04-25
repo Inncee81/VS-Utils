@@ -1,4 +1,4 @@
-import os, re
+import os, re, grp, pwd
 from collections import namedtuple
 from configparser import ConfigParser
 from prints import errmsg, debugmsg, infomsg
@@ -25,7 +25,17 @@ def parse_dig(dig, imin, imax):
     except ValueError:
         errmsg("Invalid digit in config"); exit()
 
+def parse_hostadmin(username):
+    ''' Parse the host admin username from config '''
+    try:
+        gid = pwd.getpwnam(username).pw_gid
+        uid = pwd.getpwnam(username).pw_uid
+    except KeyError:
+        errmsg("Configured host admin does not exist", "Parsing", (username,)); exit()
+    return (uid, gid)
+
 def parse_strlist(strlist, paths=False):
+    ''' Parse a stringlist which may be a list of paths '''
     try:
         strlist = list(filter(None, strlist.split(',')))
     except ValueError:
@@ -33,11 +43,13 @@ def parse_strlist(strlist, paths=False):
     if not strlist:
         errmsg("Invalid string list in config"); exit()
     if paths:
-        paths = [p.strip(os.sep) for p in strlist if os.path.isdir(p)]
+        paths = [p.rstrip(os.sep).lstrip() for p in strlist]
+        non_paths = [p for p in paths if not os.path.isdir(p)]
+        paths = [p for p in paths if os.path.isdir(p)]
         if not paths:
-            infomsg("Config contains list of non-existent file paths")
-        if set(paths) != set(strlist):
-            infomsg("Config contains path which does not exist")
+            infomsg("Config contains list of non-existent file paths", "Parsing", (paths,))
+        if non_paths:
+            infomsg("Config contains path which does not exist", "Parsing", (non_paths,))
         return paths
     return strlist
 
@@ -60,7 +72,7 @@ def parse_docker_mappings():
 
 def parse_cfg_transmission(cfg, scope):
 
-    mapping, host_watch_dir = (None for _ in range(2))
+    mapping, host_admin, host_watch_dir = (None for _ in range(3))
 
     ## Parse the config in case the script is running within a docker container
     if (scope == "docker"):
@@ -75,15 +87,18 @@ def parse_cfg_transmission(cfg, scope):
     else:
         handbrake = parse_strlist(cfg.get("Host", "host_handbrake"), True)[0]
         host_watch_dir = parse_strlist(cfg.get("Host", "host_watch_dir"), True)
+        host_admin = parse_hostadmin(cfg.get("Host", "host_admin"))
 
     codecs = enum(cfg.get("Transmission", "codecs"))
     extensions = enum(cfg.get("Transmission", "extensions"))
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     handbrake_exclude = parse_strlist(cfg.get("Handbrake", "handbrake_exclude"))
     log_level = parse_loglevel(cfg.get("Logging", "log_level"))
+    log_dir = parse_strlist(cfg.get("Logging", "log_dir"))[0]
 
-    return (mapping, codecs, extensions, port, handbrake_exclude,
-            handbrake, host_watch_dir, log_level)
+    return (mapping, codecs, extensions, port,
+            handbrake, host_watch_dir, host_admin,
+            handbrake_exclude, log_level, log_dir)
 
 def parse_cfg_handbrake(cfg, scope):
 
@@ -93,7 +108,8 @@ def parse_cfg_handbrake(cfg, scope):
     handbrake_original = parse_dig(cfg.get("Handbrake", "handbrake_original"), 0, 3)
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     log_level = parse_loglevel(cfg.get("Logging", "log_level"))
-    return (handbrake_movies, handbrake_series, handbrake_original, port, log_level)
+    log_dir = parse_strlist(cfg.get("Logging", "log_dir"))[0]
+    return (handbrake_movies, handbrake_series, handbrake_original, port, log_level, log_dir)
 
 def parse_cfg(config_file, config_type, scope):
     ''' Parse all configuration options of the config file. '''
@@ -105,13 +121,14 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
         sections = ["Handbrake", "SynoIndex", "Logging"]
-        fields = ["movies", "series", "original", "port", "log_level"]
+        fields = ["movies", "series", "original", "port", "log_level", "log_dir"]
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
         sections = ["Transmission", "SynoIndex", "Handbrake", "Host", "Logging"]
-        fields =   ["mapping", "codecs", "extensions", "port", "exclude",
-                    "handbrake", "watch_dir", "log_level"]
+        fields =   ["mapping", "codecs", "extensions", "port",
+                    "handbrake", "watch_directories", "host_admin",
+                    "exclude", "log_level", "log_dir"]
     else:
         errmsg("Config type not supported"); exit()
 
@@ -122,12 +139,12 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        (movies, series, original, port, level) = parse_cfg_handbrake(config, scope)
-        parsed_cfg = cfg(movies, series, original, port, level)
+        (movies, series, original, port, level, log) = parse_cfg_handbrake(config, scope)
+        parsed_cfg = cfg(movies, series, original, port, level, log)
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        (mpg, cds, exts, port, excls, hb, dirs, lvl) = parse_cfg_transmission(config, scope)
-        parsed_cfg = cfg(mpg, cds, exts, port, excls, hb, dirs, lvl)
+        (mpg, cds, exts, port, hb, dirs, had, excls, lvl, log) = parse_cfg_transmission(config, scope)
+        parsed_cfg = cfg(mpg, cds, exts, port, hb, dirs, had, excls, lvl, log)
 
     return parsed_cfg
