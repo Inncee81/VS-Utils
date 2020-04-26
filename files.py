@@ -2,6 +2,7 @@ import os, fnmatch, subprocess, errno, stat, glob
 from subprocess import Popen, PIPE
 from shutil import copy
 
+## Add modules from the submodule (VS-Utils)
 from prints import errmsg, debugmsg, infomsg
 
 def files_find_ext(path, ext):
@@ -74,7 +75,17 @@ def create_path_directories(path):
         else:
             raise
 
-def unrar_files(abs_path, ext=None):
+def files_fix_single(args):
+    """ If a single video file was downloaded create a directory and copy the file """
+
+    abs_path = os.path.join(args.directory, args.name)
+    if os.path.isfile(abs_path):
+        new_dir = directory_create_owner(args)
+        abs_path = file_copy(abs_path, new_dir, args)
+        debugmsg("Fixed single video file into directory", "Postprocessing", (new_dir,))
+    return abs_path
+
+def files_unrar(abs_path, ext=None):
     """ Unzip rar files
 
     Arguments:

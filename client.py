@@ -15,8 +15,7 @@ def client_get_url(scope, port):
         ni.ifaddresses('lo')
         ip = ni.ifaddresses('lo')[ni.AF_INET][0]['addr']
 
-    url = "http://{ip}:{port}/synoindex?".format(ip=ip, port=port)
-    return url
+    return "http://{ip}:{port}/synoindex?".format(ip=ip, port=port)
 
 ### Synoindex-Client
 def client(scope, port, source_host, output_host=None, original_host=None, original_mode=0):
