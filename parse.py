@@ -34,6 +34,15 @@ def parse_hostadmin(username):
         errmsg("Configured host admin does not exist", "Parsing", (username,)); exit()
     return (uid, gid)
 
+def parse_language(language):
+    allowed = ["DE", "EN"]
+    language = enum(language)[0]
+    try:
+        if language in allowed: return language
+        else: errmsg("Invalid language in config"); exit()
+    except ValueError:
+        errmsg("Invalid language in config"); exit()
+
 def parse_strlist(strlist, paths=False):
     ''' Parse a stringlist which may be a list of paths '''
     try:
@@ -106,10 +115,12 @@ def parse_cfg_handbrake(cfg, scope):
     handbrake_movies = enum(cfg.get("Handbrake", "handbrake_movies"))
     handbrake_series = enum(cfg.get("Handbrake", "handbrake_series"))
     handbrake_original = parse_dig(cfg.get("Handbrake", "handbrake_original"), 0, 3)
+    handbrake_language = parse_language(cfg.get("Handbrake", "handbrake_language"))
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     log_level = parse_loglevel(cfg.get("Logging", "log_level"))
     log_dir = parse_strlist(cfg.get("Logging", "log_dir"))[0]
-    return (handbrake_movies, handbrake_series, handbrake_original, port, log_level, log_dir)
+    return (handbrake_movies, handbrake_series, handbrake_original,
+            handbrake_language, port, log_level, log_dir)
 
 def parse_cfg(config_file, config_type, scope):
     ''' Parse all configuration options of the config file. '''
@@ -121,7 +132,8 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
         sections = ["Handbrake", "SynoIndex", "Logging"]
-        fields = ["movies", "series", "original", "port", "log_level", "log_dir"]
+        fields = ["movies", "series", "original", "language",
+                  "port", "log_level", "log_dir"]
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
@@ -139,8 +151,8 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        (movies, series, original, port, level, log) = parse_cfg_handbrake(config, scope)
-        parsed_cfg = cfg(movies, series, original, port, level, log)
+        (movies, series, original, lang, port, level, log) = parse_cfg_handbrake(config, scope)
+        parsed_cfg = cfg(movies, series, original, lang, port, level, log)
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
