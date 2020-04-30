@@ -1,5 +1,6 @@
 import os, errno, logging
 from datetime import datetime
+from scope import scope_reverse_map_path
 
 ## Get the log name from the project file
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +34,7 @@ def init_logging(args=None, cfg=None):
         if not os.path.isdir(cfg.log_dir):
             create_path_directories(cfg.log_dir)
         log_file = os.path.join(cfg.log_dir, "{}.log".format(log_name))
+        log_file = scope_reverse_map_path(cfg, args, log_file)
         if not os.path.isfile(log_file): open(log_file, 'a').close()
 
     ## Setup the root logger

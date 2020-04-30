@@ -48,6 +48,20 @@ def scope_map_path(cfg, args, filepath):
         (source_host, root_host) = maps[0]
         return (source_host, root_host, root_host)
 
+def scope_reverse_map_path(cfg, args, filepath):
+    """ Docker-scope: hostsystem path -> docker path
+        Host-scope:   hostsystem path -> hostsystem path """
+
+    ## Use original path if not docker scope
+    if (args.scope != "docker"):
+        return filepath
+
+    ## Map host system path to docker path
+    for m in cfg.mapping:
+        file_tmp = filepath.replace(m[1], m[0])
+        if file_tmp != filepath:
+            return file_tmp
+
 def scope_get():
     """ Get the scope of the script (within docker container or host system). """
 
