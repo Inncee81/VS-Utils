@@ -111,6 +111,12 @@ def parse_cfg_transmission(cfg, scope):
 
 def parse_cfg_handbrake(cfg, scope):
 
+    mapping = None
+
+    ## Parse the config in case the script is running within a docker container
+    if (scope == "docker"):
+        mapping = parse_docker_mappings()
+
     ## Get the different episode and movie paths
     handbrake_movies = enum(cfg.get("Handbrake", "handbrake_movies"))
     handbrake_series = enum(cfg.get("Handbrake", "handbrake_series"))
@@ -119,7 +125,7 @@ def parse_cfg_handbrake(cfg, scope):
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     log_level = parse_loglevel(cfg.get("Logging", "log_level"))
     log_dir = parse_strlist(cfg.get("Logging", "log_dir"))[0]
-    return (handbrake_movies, handbrake_series, handbrake_original,
+    return (mapping, handbrake_movies, handbrake_series, handbrake_original,
             handbrake_language, port, log_level, log_dir)
 
 def parse_cfg(config_file, config_type, scope):
@@ -132,7 +138,7 @@ def parse_cfg(config_file, config_type, scope):
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
         sections = ["Handbrake", "SynoIndex", "Logging"]
-        fields = ["movies", "series", "original", "language",
+        fields = ["mapping", "movies", "series", "original", "language",
                   "port", "log_level", "log_dir"]
 
     ## VS-Transmission
@@ -151,8 +157,8 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Handbrake
     if (config_type == "vs-handbrake"):
-        (movies, series, original, lang, port, level, log) = parse_cfg_handbrake(config, scope)
-        parsed_cfg = cfg(movies, series, original, lang, port, level, log)
+        (mpg, movies, series, original, lang, port, level, log) = parse_cfg_handbrake(config, scope)
+        parsed_cfg = cfg(mpg, movies, series, original, lang, port, level, log)
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
