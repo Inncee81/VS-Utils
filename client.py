@@ -30,8 +30,6 @@ def client(scope, port, source_host, output_host=None, original_host=None, origi
 
     ## Call the url and get the answer of the server
     url = url + urlencode(query_vars)
-    infomsg("Send query to SynoIndex-Server", "SynoClient")
-    debugmsg("  Url", "SynoClient", (url,))
     infomsg("  Source", "SynoClient", (source_host,))
     infomsg("  Handbrake Output", "SynoClient", (output_host,))
     infomsg("  Original", "SynoClient", (original_host,))
