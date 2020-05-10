@@ -15,13 +15,16 @@ def users_get_admin(all_users):
     return (users, admin)
 
 ## Get all users of the Synology station
-def users_get_selection(mode=0):
+def users_get_selection(mode=0, id=True):
 
     ## Split users and admin
     all_users = pwd.getpwall()
     all_users = [(u[0],u[2]) for u in all_users if grp.getgrgid(u[3])[0] == 'users']
     all_users = [u for u in all_users if u[0] != 'admin' and u[0] != 'guest']
     (users, admin) = users_get_admin(all_users)
+
+    if not id: users = [u[0] for u in users]
+    if not id: admin = admin[0]
 
     ## Users
     if mode == 0:
