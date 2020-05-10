@@ -41,7 +41,7 @@ def init_logging(args=None, cfg=None):
     log_lvl = logging.DEBUG if (not args and not cfg) else cfg.log_level
     if (rootLogger == ""):
         logFormatter = logging.Formatter("[%(asctime)s] %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
-        rootLogger = logging.getLogger()
+        rootLogger = logging.getLogger(__name__)
         rootLogger.setLevel(log_lvl)
 
     ## Add a file handler only in non-postgres mode
