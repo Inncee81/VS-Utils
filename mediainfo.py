@@ -41,7 +41,6 @@ def ffprobe_filter(stream_list):
 
     ## Get the stream and format dictionaries
     video_stream = [s for s in stream_list if s[0] != "Format" and s[1]['codec_type'] == 'video'][0][1]
-    audio_stream = [s for s in stream_list if s[0] != "Format" and s[1]['codec_type'] == 'audio' and s[1]['TAG:language'] == "ger"][0][1]
     format_info = [s for s in stream_list if s[0] == "Format"][0][1]
 
     ## General file information
@@ -73,12 +72,6 @@ def ffprobe_filter(stream_list):
     media_infos['video_level'] = video_stream['level']
     media_infos['resolutionX'] = video_stream['coded_width']
     media_infos['resolutionY'] = video_stream['coded_height']
-
-    ## Audio
-    media_infos['audio_codec'] = audio_stream['codec_name']
-    media_infos['audio_bitrate'] = audio_stream['bit_rate']
-    media_infos['frequency'] = audio_stream['sample_rate']
-    media_infos['channel'] = audio_stream['channels']
 
     ## Duration
     media_infos['duration'] = format_info['duration'].split(".")[0]
