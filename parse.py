@@ -102,12 +102,14 @@ def parse_cfg_transmission(cfg, scope):
     extensions = enum(cfg.get("Transmission", "extensions"))
     port = parse_dig(cfg.get("SynoIndex", "synoindex_port"), 1, 65535)
     handbrake_exclude = parse_strlist(cfg.get("Handbrake", "handbrake_exclude"))
+    handbrake_4k = parse_dig(cfg.get("Handbrake", "handbrake_4k"), 1, 2)
     log_level = parse_loglevel(cfg.get("Logging", "log_level"))
     log_dir = parse_strlist(cfg.get("Logging", "log_dir"))[0]
 
     return (mapping, codecs, extensions, port,
             handbrake, host_watch_dir, host_admin,
-            handbrake_exclude, log_level, log_dir)
+            handbrake_exclude, handbrake_4k,
+            log_level, log_dir)
 
 def parse_cfg_handbrake(cfg, scope):
 
@@ -146,7 +148,7 @@ def parse_cfg(config_file, config_type, scope):
         sections = ["Transmission", "SynoIndex", "Handbrake", "Host", "Logging"]
         fields =   ["mapping", "codecs", "extensions", "port",
                     "handbrake", "watch_directories", "host_admin",
-                    "exclude", "log_level", "log_dir"]
+                    "exclude", "hb_4k", "log_level", "log_dir"]
     else:
         errmsg("Config type not supported"); exit()
 
@@ -162,7 +164,7 @@ def parse_cfg(config_file, config_type, scope):
 
     ## VS-Transmission
     elif (config_type == "vs-transmission"):
-        (mpg, cds, exts, port, hb, dirs, had, excls, lvl, log) = parse_cfg_transmission(config, scope)
-        parsed_cfg = cfg(mpg, cds, exts, port, hb, dirs, had, excls, lvl, log)
+        (mpg, cds, exts, port, hb, dirs, had, excls, h4k, lvl, log) = parse_cfg_transmission(config, scope)
+        parsed_cfg = cfg(mpg, cds, exts, port, hb, dirs, had, excls, h4k, lvl, log)
 
     return parsed_cfg
