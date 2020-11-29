@@ -1,20 +1,14 @@
 import os, re, urllib
+import netifaces as ni
 from urllib.request import urlopen
 from urllib.parse import urlencode
 from prints import errmsg, debugmsg, infomsg
 
 def client_get_url(scope, port):
     if (scope == "docker"):
-        import subprocess
-        ps = subprocess.Popen(('ip', 'route', 'show'), stdout=subprocess.PIPE)
-        output = subprocess.check_output(('grep', 'default'), stdin=ps.stdout)
-        ps.wait()
-        ip = re.search(r'([0-9]{1,3}[\.]){3}[0-9]{1,3}', output.decode('utf-8'), flags=0).group()
+        ip = ni.gateways()['default'][ni.AF_INET][0]
     else:
-        import netifaces as ni
-        ni.ifaddresses('lo')
         ip = ni.ifaddresses('lo')[ni.AF_INET][0]['addr']
-
     return "http://{ip}:{port}/synoindex?".format(ip=ip, port=port)
 
 ### Synoindex-Client
