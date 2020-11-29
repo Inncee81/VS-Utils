@@ -47,6 +47,7 @@ def parse_strlist(strlist, paths=False):
     ''' Parse a stringlist which may be a list of paths '''
     try:
         strlist = list(filter(None, strlist.split(',')))
+        strlist = [s.strip() for s in strlist]
     except ValueError:
         errmsg("Invalid string list in config"); exit()
     if not strlist:
